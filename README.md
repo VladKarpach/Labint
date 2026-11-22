@@ -1,0 +1,49 @@
+# Задача 11: Таймер помодоро (логика интервалов)
+
+**Студент:** Карпач В.Р.
+## Постановка
+
+Модуль: работа / перерыв / длинный перерыв по счётчику сессий. Тесты переходов состояний. CI; CD — артефакт сборки или Pages с описанием алгоритма.
+
+## Структура проекта
+
+```
+pomodoro.py              # логика: Config, State, Pomodoro, schedule()
+tests/test_pomodoro.py   # автотесты (pytest)
+scripts/build_site.py    # генерация статической страницы public/index.html
+pytest.ini               # настройки pytest
+requirements.txt         # зависимости (pytest)
+.github/workflows/ci.yml # пайплайн CI/CD (GitHub Actions)
+```
+
+## Алгоритм
+
+Таймер — конечный автомат с тремя состояниями: `WORK`, `SHORT_BREAK`, `LONG_BREAK`.
+
+- После `WORK` счётчик завершённых сессий увеличивается на 1.
+- Если счётчик кратен `sessions_before_long` (по умолчанию 4) — следующее состояние `LONG_BREAK`, иначе `SHORT_BREAK`.
+- После любого перерыва наступает `WORK`.
+- Длительности по умолчанию: работа 25 мин, короткий перерыв 5 мин, длинный 15 мин.
+
+## Как запустить тесты локально
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate        # Windows (Linux/macOS: source .venv/bin/activate)
+pip install -r requirements.txt
+pytest -v
+```
+
+Собрать страницу локально: `python scripts/build_site.py` (результат в `public/index.html`).
+
+## Как устроен CI/CD
+
+Конфиг: `.github/workflows/ci.yml`.
+
+| Стадия | Когда запускается | Что делает |
+|--------|-------------------|-----------|
+| `test` | на каждый `push` в любую ветку и на каждый Pull Request | ставит зависимости, запускает `pytest`, сохраняет `report.xml` как артефакт; при падении теста пайплайн краснеет |
+| `build` | только `push` в ветку **`main`** и только после успешного `test` | генерирует `public/index.html` и готовит артефакт для Pages |
+| `deploy` | только `push` в ветку **`main`** после `build` | публикует страницу на GitHub Pages |
+
+Деплой выполняется **только с ветки `main`**. Успешный деплой — зелёные все три стадии и открывающаяся страница по адресу из job `deploy`.
